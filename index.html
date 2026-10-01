@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebCore 1.0 - Monte seu stack web</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for in-browser JSX compilation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
+    <!-- Material UI -->
+    <script src="https://unpkg.com/@mui/material@5.14.20/umd/material-ui.production.min.js"></script>
+    
+    <!-- Google Fonts & Devicon -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/devicons/devicon@v2.15.1/devicon.min.css">
+    
+    <style>
+        body { margin: 0; padding: 0; background-color: #f9f9f9; }
+        * { box-sizing: border-box; }
+        .tech-icon-fallback {
+            width: 48px; height: 48px; border-radius: 8px;
+            background: linear-gradient(135deg, #e0e0e0, #eeeeee);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; color: #424242; font-size: 1.2rem;
+            border: 1px solid #ccc; margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { 
+            ThemeProvider, createTheme, CssBaseline, 
+            Container, Typography, Button, Card, CardContent, 
+            Grid, Box, AppBar, Toolbar, Chip, Stepper, Step, StepLabel,
+            Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
+            Divider, TextField, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions
+        } = MaterialUI;
+
+        // --- 1. TEMA MATERIAL DESIGN (Minimalista) ---
+        const theme = createTheme({
+            palette: {
+                primary: { main: '#424242' },
+                secondary: { main: '#9e9e9e' },
+                background: { default: '#f5f5f5', paper: '#ffffff' },
+                text: { primary: '#212121', secondary: '#616161' }
+            },
+            typography: {
+                fontFamily: '"Roboto Mono", "JetBrains Mono", Consolas, monospace',
+                h4: { fontWeight: 700, letterSpacing: '-0.5px' },
+                h5: { fontWeight: 700 },
+                h6: { fontWeight: 600 }
+            },
+            components: {
+                MuiCard: { styleOverrides: { root: { borderRadius: 8, boxShadow: '0 4px 12px rgba(0,0,0,0.05)', border: '1px solid #eeeeee' } } },
+                MuiButton: { styleOverrides: { root: { textTransform: 'none', borderRadius: 4, fontWeight: 600 } } }
+            }
+        });
+
+        // --- 2. CATÁLOGO DE TECNOLOGIAS ---
+        const catalog = [
+            // Front-End
+            { id: 'html5', name: 'HTML5', icon: 'devicon-html5-plain colored', category: 'markup', layers: ['frontend'], fullStack: false, difficulty: 1, desc: 'A base da web.', ecosystem: 'web' },
+            { id: 'css3', name: 'CSS3', icon: 'devicon-css3-plain colored', category: 'style', layers: ['frontend'], fullStack: false, difficulty: 2, desc: 'Estiliza a web.', ecosystem: 'web' },
+            { id: 'js', name: 'JavaScript', icon: 'devicon-javascript-plain colored', category: 'language', layers: ['frontend', 'backend'], fullStack: true, difficulty: 2, desc: 'Dá vida à web.', ecosystem: 'js' },
+            { id: 'ts', name: 'TypeScript', icon: 'devicon-typescript-plain colored', category: 'language', layers: ['frontend', 'backend'], fullStack: true, difficulty: 3, desc: 'JS com tipos.', ecosystem: 'js' },
+            { id: 'wasm', name: 'WebAssembly', icon: 'devicon-wasm-plain colored', category: 'language', layers: ['frontend'], fullStack: false, difficulty: 5, desc: 'Alto desempenho.', ecosystem: 'web' },
+            { id: 'dart', name: 'Dart', icon: 'devicon-dart-plain colored', category: 'language', layers: ['frontend'], fullStack: false, difficulty: 3, desc: 'Linguagem do Flutter.', ecosystem: 'dart' },
+            
+            // Front-End Frameworks
+            { id: 'react', name: 'React', icon: 'devicon-react-original colored', category: 'library', layers: ['frontend'], fullStack: false, difficulty: 3, desc: 'Biblioteca UI do Facebook.', ecosystem: 'js' },
+            { id: 'angular', name: 'Angular', icon: 'devicon-angularjs-plain colored', category: 'framework', layers: ['frontend'], fullStack: false, difficulty: 4, desc: 'Framework Google.', ecosystem: 'ts' },
+            { id: 'vue', name: 'Vue.js', icon: 'devicon-vuejs-plain colored', category: 'framework', layers: ['frontend'], fullStack: false, difficulty: 2, desc: 'Framework Progressivo.', ecosystem: 'js' },
+            { id: 'svelte', name: 'Svelte', icon: 'devicon-svelte-plain colored', category: 'framework', layers: ['frontend'], fullStack: false, difficulty: 2, desc: 'Compila para código nativo.', ecosystem: 'js' },
+            { id: 'alpine', name: 'Alpine.js', icon: 'devicon-alpinejs-plain colored', category: 'library', layers: ['frontend'], fullStack: false, difficulty: 1, desc: 'Reatividade simples.', ecosystem: 'js' },
+            
+            // Back-End Frameworks
+            { id: 'express', name: 'Express.js', icon: 'devicon-express-original colored', category: 'framework', layers: ['backend'], fullStack: false, difficulty: 2, desc: 'Minimalista (Node).', ecosystem: 'js' },
+            { id: 'nestjs', name: 'NestJS', icon: 'devicon-nestjs-plain colored', category: 'framework', layers: ['backend'], fullStack: false, difficulty: 4, desc: 'Escalável e modular.', ecosystem: 'ts' },
+            { id: 'fastapi', name: 'FastAPI', icon: 'devicon-fastapi-plain colored', category: 'framework', layers: ['backend'], fullStack: false, difficulty: 2, desc: 'Alta performance.', ecosystem: 'python' },
+            { id: 'springboot', name: 'Spring Boot', icon: 'devicon-spring-plain colored', category: 'framework', layers: ['backend'], fullStack: false, difficulty: 4, desc: 'Java para corporações.', ecosystem: 'java' },
+            { id: 'gin', name: 'Gin', icon: 'devicon-go-original-wordmark colored', category: 'framework', layers: ['backend'], fullStack: false, difficulty: 3, desc: 'Rápido (Go).', ecosystem: 'go' },
+
+            // Full-Stack (Linguagens, Frameworks e Stacks Combinadas)
+            { id: 'django', name: 'Django', icon: 'devicon-django-plain colored', category: 'framework', layers: ['backend', 'frontend'], fullStack: true, difficulty: 3, desc: 'Completo e robusto.', ecosystem: 'python' },
+            { id: 'laravel', name: 'Laravel', icon: 'devicon-laravel-plain colored', category: 'framework', layers: ['backend', 'frontend'], fullStack: true, difficulty: 3, desc: 'PHP elegante.', ecosystem: 'php' },
+            { id: 'rails', name: 'Ruby on Rails', icon: 'devicon-rails-plain colored', category: 'framework', layers: ['backend', 'frontend'], fullStack: true, difficulty: 3, desc: 'Produtividade rubi.', ecosystem: 'ruby' },
+            { id: 'aspnet', name: 'ASP.NET Core', icon: 'devicon-dotnetcore-plain colored', category: 'framework', layers: ['backend', 'frontend'], fullStack: true, difficulty: 4, desc: 'Microsoft Web.', ecosystem: 'csharp' },
+            { id: 'nextjs', name: 'Next.js', icon: 'devicon-nextjs-plain colored', category: 'framework', layers: ['frontend', 'backend'], fullStack: true, difficulty: 3, desc: 'React full-stack.', ecosystem: 'js' },
+            { id: 'nuxt', name: 'Nuxt', icon: 'devicon-nuxtjs-plain colored', category: 'framework', layers: ['frontend', 'backend'], fullStack: true, difficulty: 3, desc: 'Vue universal.', ecosystem: 'js' },
+            { id: 'sveltekit', name: 'SvelteKit', icon: '', category: 'framework', layers: ['frontend', 'backend'], fullStack: true, difficulty: 3, desc: 'Svelte moderno.', ecosystem: 'js' },
+            { id: 't3', name: 'T3 Stack', icon: '', category: 'stack', layers: ['frontend', 'backend', 'database'], fullStack: true, difficulty: 4, desc: 'Next, tRPC, Prisma.', ecosystem: 'ts' },
+            { id: 'mern', name: 'MERN', icon: '', category: 'stack', layers: ['frontend', 'backend', 'database'], fullStack: true, difficulty: 3, desc: 'Mongo, Express, React, Node.', ecosystem: 'js' },
+            { id: 'mean', name: 'MEAN', icon: '', category: 'stack', layers: ['frontend', 'backend', 'database'], fullStack: true, difficulty: 4, desc: 'Mongo, Express, Angular, Node.', ecosystem: 'ts' },
+
+            // Databases (SQL, NoSQL, Buscas, Grafos)
+            { id: 'postgres', name: 'PostgreSQL', icon: 'devicon-postgresql-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 3, desc: 'Relacional poderoso.', ecosystem: 'sql' },
+            { id: 'mysql', name: 'MySQL', icon: 'devicon-mysql-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 2, desc: 'Banco popular e maduro.', ecosystem: 'sql' },
+            { id: 'sqlite', name: 'SQLite', icon: 'devicon-sqlite-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 1, desc: 'Leve e embutido.', ecosystem: 'sql' },
+            { id: 'mongodb', name: 'MongoDB', icon: 'devicon-mongodb-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 2, desc: 'Documentos flexíveis.', ecosystem: 'nosql' },
+            { id: 'redis', name: 'Redis', icon: 'devicon-redis-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 3, desc: 'Chave-valor em memória.', ecosystem: 'nosql' },
+            { id: 'firebase', name: 'Firebase', icon: 'devicon-firebase-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 1, desc: 'Tempo real do Google.', ecosystem: 'nosql' },
+            { id: 'dynamo', name: 'DynamoDB', icon: '', category: 'database', layers: ['database'], fullStack: false, difficulty: 4, desc: 'NoSQL escalável da AWS.', ecosystem: 'nosql' },
+            { id: 'cassandra', name: 'Cassandra', icon: '', category: 'database', layers: ['database'], fullStack: false, difficulty: 5, desc: 'Distribuído e resiliente.', ecosystem: 'nosql' },
+            { id: 'neo4j', name: 'Neo4j', icon: 'devicon-neo4j-plain colored', category: 'database', layers: ['database'], fullStack: false, difficulty: 4, desc: 'Banco de grafos.', ecosystem: 'nosql' },
+            { id: 'elasticsearch', name: 'Elasticsearch', icon: '', category: 'database', layers: ['database'], fullStack: false, difficulty: 4, desc: 'Busca distribuída.', ecosystem: 'nosql' },
+        ];
+
+        const generateStacksForTechnology = (techId) => {
+            const tech = catalog.find(t => t.id === techId);
+            if (!tech) return [];
+            let stacks = [];
+            const getByLayer = (layer) => catalog.filter(t => t.layers.includes(layer) && t.id !== tech.id && t.category !== 'stack');
+            
+            const fronts = getByLayer('frontend').filter(t => t.category === 'framework' || t.category === 'library');
+            const backs = getByLayer('backend').filter(t => t.category === 'framework');
+            const dbs = getByLayer('database');
+
+            const scoreStack = (f, b, d) => {
+                let score = 70;
+                let explanation = `${f.name} cuida da interface visual, conectando-se à API construída em ${b.name}, que gerencia os dados no ${d.name}.`;
+                let attention = [];
+
+                if (f.ecosystem === b.ecosystem) {
+                    score += 20;
+                    explanation = `Ótima sinergia. O uso de ${f.ecosystem} de ponta a ponta facilita a engenharia para equipes e iniciantes.`;
+                }
+                if (b.ecosystem === 'python' && d.id === 'postgres') score += 10;
+                if (d.id === 'sqlite') explanation += " SQLite é perfeito para prototipar sem dor de cabeça com infraestrutura.";
+                
+                return { front: f, back: b, db: d, score, explanation, attention };
+            };
+
+            if (tech.category === 'stack') {
+                return [{ front: tech, back: tech, db: tech, score: 100, explanation: `A stack ${tech.name} já engloba soluções para as três camadas de forma integrada.`, attention: ["Você precisa aprender as convenções específicas dessa stack."] }];
+            }
+
+            if (tech.layers.includes('frontend') && (tech.category === 'framework' || tech.category === 'library')) {
+                backs.forEach(b => dbs.slice(0, 2).forEach(d => stacks.push(scoreStack(tech, b, d))));
+            } else if (tech.layers.includes('backend')) {
+                fronts.forEach(f => dbs.slice(0, 2).forEach(d => stacks.push(scoreStack(f, tech, d))));
+            } else if (tech.layers.includes('database')) {
+                fronts.slice(0, 2).forEach(f => backs.forEach(b => stacks.push(scoreStack(f, b, tech))));
+            } else if (tech.id === 'html5' || tech.id === 'css3') {
+                backs.forEach(b => dbs.slice(0, 2).forEach(d => stacks.push({
+                    front: tech, back: b, db: d, score: 90,
+                    explanation: `${tech.name} é universal. Pode ser servido ou renderizado via templates pelo ${b.name}.`,
+                    attention: ["Aprenda como o seu backend lida com arquivos estáticos."]
+                })));
+            }
+
+            return stacks.sort((a, b) => b.score - a.score).slice(0, 4);
+        };
+
+        // --- 3. COMPONENTS ---
+        const FloatingDonation = ({ url }) => {
+            if (!url) return null;
+            return (
+                <Card sx={{ 
+                    position: 'fixed', 
+                    bottom: 24, 
+                    right: 24, 
+                    zIndex: 1000, 
+                    p: 2, 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    alignItems: 'center',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+                    border: '1px solid #e0e0e0',
+                    maxWidth: 180,
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(4px)'
+                }}>
+                    <Typography variant="caption" fontWeight="bold" textAlign="center" mb={1} color="text.secondary" sx={{ lineHeight: 1.2 }}>
+                        Doe para manter o projeto
+                    </Typography>
+                    <img src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(url)}`} alt="QR Code de Doação" width="140" height="140" style={{ borderRadius: 4 }} />
+                </Card>
+            );
+        };
+
+        const TopBar = ({ setView }) => (
+            <AppBar position="static" elevation={0} sx={{ borderBottom: '1px solid #e0e0e0', backgroundColor: '#fff' }}>
+                <Toolbar>
+                    <Typography variant="h6" color="primary" sx={{ flexGrow: 1, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 1 }} onClick={() => setView('home')}>
+                        <span style={{ backgroundColor: '#424242', color: '#fff', padding: '2px 8px', borderRadius: 4 }}>W</span>
+                        WebCore <span style={{ fontSize: '0.6em', color: '#9e9e9e' }}>1.0</span>
+                    </Typography>
+                    
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <Button sx={{ color: '#424242' }} onClick={() => setView('catalog')}>Catálogo</Button>
+                        <Button 
+                            sx={{ color: '#424242', borderColor: '#e0e0e0' }} 
+                            variant="outlined" 
+                            size="small" 
+                            onClick={() => setView('admin')}
+                            startIcon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>}
+                        >
+                            Admin
+                        </Button>
+                    </Box>
+                </Toolbar>
+            </AppBar>
+        );
+
+        const Home = ({ setView }) => (
+            <Container maxWidth="md" sx={{ mt: 8, mb: 8 }}>
+                <Box textAlign="center" mb={6}>
+                    <Typography variant="h4" gutterBottom>Monte seu stack web</Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Escolha uma tecnologia inicial que você já domina e descubra opções compatíveis para completar seu projeto.
+                    </Typography>
+                </Box>
+                <Grid container spacing={4} justifyContent="center">
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', p: 2 }}>
+                            <CardContent sx={{ flexGrow: 1, textAlign: 'center' }}>
+                                <Typography variant="h5" gutterBottom>Escolher tecnologia inicial</Typography>
+                                <Typography variant="body2" color="text.secondary" paragraph>
+                                    Selecione Front-End, Back-End ou Banco e veja o que combina.
+                                </Typography>
+                                <Button variant="contained" color="primary" size="large" onClick={() => setView('flow2')} sx={{ mt: 2 }}>
+                                    Definir ponto de partida
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </Container>
+        );
+
+        const TechIcon = ({ tech }) => {
+            if (tech.icon) return <i className={tech.icon} style={{ fontSize: '2.5rem', color: '#424242' }}></i>;
+            return <div className="tech-icon-fallback">{tech.name.substring(0, 2).toUpperCase()}</div>;
+        };
+
+        const Flow2 = ({ setView, setSelectedTech }) => {
+            const [filter, setFilter] = React.useState('frontend');
+
+            const filteredCatalog = catalog.filter(t => t.layers.includes(filter));
+
+            return (
+                <Container maxWidth="lg" sx={{ mt: 6, mb: 8 }}>
+                    <Typography variant="h5" gutterBottom>Ponto de partida</Typography>
+                    <Box mb={4} display="flex" gap={2}>
+                        <Button variant={filter === 'frontend' ? 'contained' : 'outlined'} onClick={() => setFilter('frontend')}>Front-End</Button>
+                        <Button variant={filter === 'backend' ? 'contained' : 'outlined'} onClick={() => setFilter('backend')}>Back-End</Button>
+                        <Button variant={filter === 'database' ? 'contained' : 'outlined'} onClick={() => setFilter('database')}>Banco de Dados</Button>
+                    </Box>
+
+                    <Grid container spacing={3}>
+                        {filteredCatalog.map(tech => (
+                            <Grid item xs={12} sm={6} md={3} key={tech.id}>
+                                <Card sx={{ cursor: 'pointer', transition: '0.2s', height: '100%', '&:hover': { borderColor: '#424242', transform: 'translateY(-2px)' } }} onClick={() => { setSelectedTech(tech.id); setView('recommendation_flow2'); }}>
+                                    <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                        <TechIcon tech={tech} />
+                                        <Typography variant="h6" mt={1}>{tech.name}</Typography>
+                                        <Box display="flex" gap={1} mt={0.5} flexWrap="wrap" justifyContent="center">
+                                            <Typography variant="caption" color="text.secondary" sx={{ border: '1px solid #ccc', borderRadius: 1, px: 1 }}>{tech.category.toUpperCase()}</Typography>
+                                            {tech.fullStack && <Typography variant="caption" sx={{ backgroundColor: '#424242', color: '#fff', borderRadius: 1, px: 1, fontWeight: 'bold' }}>FULL-STACK</Typography>}
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                    <Button sx={{ mt: 4 }} onClick={() => setView('home')}>Voltar</Button>
+                </Container>
+            );
+        };
+
+        const RecommendationFlow2 = ({ techId, setView }) => {
+            const tech = catalog.find(t => t.id === techId);
+            const stacks = generateStacksForTechnology(techId);
+
+            return (
+                <Container maxWidth="md" sx={{ mt: 6, mb: 8 }}>
+                    <Typography variant="body1" color="text.secondary">Você escolheu:</Typography>
+                    <Typography variant="h3" color="primary" gutterBottom>{tech.name}</Typography>
+                    <Chip label={`Camada: ${tech.layers.join(' & ')}`} sx={{ mb: 4 }} />
+
+                    <Typography variant="h5" gutterBottom>Stacks compatíveis sugeridas:</Typography>
+                    
+                    <Grid container spacing={3} mt={1}>
+                        {stacks.map((stack, idx) => (
+                            <Grid item xs={12} key={idx}>
+                                <Card>
+                                    <CardContent>
+                                        <Typography variant="subtitle2" color="text.secondary">OPÇÃO {idx + 1} {stack.score === 100 && "(Tudo-em-Um)"}</Typography>
+                                        <Box display="flex" alignItems="center" gap={2} mt={1} mb={2} flexWrap="wrap">
+                                            <Chip icon={<i className={stack.front.icon}></i>} label={stack.front.name} color={stack.front.id === techId ? "primary" : "default"} variant={stack.front.id === techId ? "filled" : "outlined"}/>
+                                            {stack.front.id !== stack.back.id && <Typography>+</Typography>}
+                                            {stack.front.id !== stack.back.id && <Chip icon={<i className={stack.back.icon}></i>} label={stack.back.name} color={stack.back.id === techId ? "primary" : "default"} variant={stack.back.id === techId ? "filled" : "outlined"}/>}
+                                            {stack.back.id !== stack.db.id && <Typography>+</Typography>}
+                                            {stack.back.id !== stack.db.id && <Chip icon={<i className={stack.db.icon}></i>} label={stack.db.name} color={stack.db.id === techId ? "primary" : "default"} variant={stack.db.id === techId ? "filled" : "outlined"}/>}
+                                        </Box>
+                                        <Typography variant="body2" fontWeight="bold" mt={2}>Por que funciona?</Typography>
+                                        <Typography variant="body2" color="text.secondary" paragraph>{stack.explanation}</Typography>
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        ))}
+                    </Grid>
+                    <Box mt={4}><Button variant="outlined" onClick={() => setView('flow2')}>Escolher outra</Button></Box>
+                </Container>
+            );
+        };
+
+        const CatalogView = ({ setView }) => (
+            <Container maxWidth="lg" sx={{ mt: 6, mb: 8 }}>
+                <Typography variant="h4" gutterBottom>Catálogo de Tecnologias</Typography>
+                <Grid container spacing={3} mt={2}>
+                    {catalog.map(tech => (
+                        <Grid item xs={12} sm={6} md={3} key={tech.id}>
+                            <Card sx={{ height: '100%' }}>
+                                <CardContent sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                                    <TechIcon tech={tech} />
+                                    <Typography variant="h6" mt={1}>{tech.name}</Typography>
+                                    <Box display="flex" gap={1} mt={0.5} flexWrap="wrap" justifyContent="center">
+                                        <Typography variant="caption" color="text.secondary" sx={{ border: '1px solid #ccc', borderRadius: 1, px: 1 }}>{tech.category.toUpperCase()}</Typography>
+                                        {tech.fullStack && <Typography variant="caption" sx={{ backgroundColor: '#424242', color: '#fff', borderRadius: 1, px: 1, fontWeight: 'bold' }}>FULL-STACK</Typography>}
+                                    </Box>
+                                    <Typography variant="body2" sx={{ mt: 1, color: '#616161' }}>{tech.desc}</Typography>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Container>
+        );
+
+
+        const AdminPanel = ({ setView }) => {
+            const [config, setConfig] = React.useState(null);
+            const [googleCredential, setGoogleCredential] = React.useState('');
+            const [adminProfile, setAdminProfile] = React.useState(null);
+            const [appMessage, setAppMessage] = React.useState('');
+            const [loading, setLoading] = React.useState(false);
+            const [maintenanceResult, setMaintenanceResult] = React.useState(null);
+            const googleButtonRef = React.useRef(null);
+
+            React.useEffect(() => {
+                let active = true;
+
+                fetch('/api/config')
+                    .then(async (response) => {
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Falha ao carregar a configuração pública.');
+                        if (active) setConfig(data);
+                    })
+                    .catch((error) => {
+                        if (active) setAppMessage(error.message);
+                    });
+
+                return () => { active = false; };
+            }, []);
+
+            React.useEffect(() => {
+                if (!config?.googleClientId || adminProfile) return;
+
+                let cancelled = false;
+                let attempts = 0;
+
+                const initializeGoogle = () => {
+                    if (cancelled) return;
+
+                    if (!window.google?.accounts?.id) {
+                        attempts += 1;
+                        if (attempts < 40) {
+                            setTimeout(initializeGoogle, 250);
+                        } else {
+                            setAppMessage('Não foi possível carregar o login do Google. Verifique sua conexão e tente novamente.');
+                        }
+                        return;
+                    }
+
+                    window.google.accounts.id.initialize({
+                        client_id: config.googleClientId,
+                        callback: async (response) => {
+                            if (!response?.credential) {
+                                setAppMessage('O Google não retornou uma credencial válida.');
+                                return;
+                            }
+
+                            setLoading(true);
+                            setAppMessage('Validando sua conta com o servidor...');
+
+                            try {
+                                const authResponse = await fetch('/api/admin-auth', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${response.credential}`,
+                                        'Content-Type': 'application/json'
+                                    }
+                                });
+
+                                const data = await authResponse.json();
+
+                                if (!authResponse.ok) {
+                                    throw new Error(data.error || 'Conta não autorizada.');
+                                }
+
+                                setGoogleCredential(response.credential);
+                                setAdminProfile(data);
+                                setAppMessage(
+                                    data.bootstrap
+                                        ? 'Acesso temporário autorizado pelo e-mail. Copie seu Google SUB abaixo e configure ADMIN_GOOGLE_SUB no Vercel.'
+                                        : 'Acesso administrativo autorizado.'
+                                );
+                            } catch (error) {
+                                setGoogleCredential('');
+                                setAdminProfile(null);
+                                setAppMessage(error.message);
+                            } finally {
+                                setLoading(false);
+                            }
+                        }
+                    });
+
+                    if (googleButtonRef.current) {
+                        googleButtonRef.current.innerHTML = '';
+                        window.google.accounts.id.renderButton(
+                            googleButtonRef.current,
+                            {
+                                type: 'standard',
+                                theme: 'outline',
+                                size: 'large',
+                                text: 'signin_with',
+                                shape: 'rectangular',
+                                width: 320
+                            }
+                        );
+                    }
+                };
+
+                initializeGoogle();
+
+                return () => {
+                    cancelled = true;
+                };
+            }, [config, adminProfile]);
+
+            const handleLogout = () => {
+                if (window.google?.accounts?.id) {
+                    window.google.accounts.id.disableAutoSelect();
+                }
+                setGoogleCredential('');
+                setAdminProfile(null);
+                setMaintenanceResult(null);
+                setAppMessage('Sessão administrativa encerrada.');
+            };
+
+            const copySub = async () => {
+                if (!adminProfile?.sub) return;
+                try {
+                    await navigator.clipboard.writeText(adminProfile.sub);
+                    setAppMessage('Google SUB copiado.');
+                } catch {
+                    setAppMessage(`Seu Google SUB é: ${adminProfile.sub}`);
+                }
+            };
+
+            const runGeminiMaintenance = async () => {
+                if (!googleCredential) {
+                    setAppMessage('Faça login novamente para executar a manutenção.');
+                    return;
+                }
+
+                setLoading(true);
+                setMaintenanceResult(null);
+                setAppMessage(config?.geminiGoogleSearch ? 'Consultando o Gemini com Pesquisa Google...' : 'Consultando o Gemini...');
+
+                try {
+                    const response = await fetch('/api/gemini-maintenance', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${googleCredential}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ catalog })
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        if (response.status === 401) {
+                            setGoogleCredential('');
+                            setAdminProfile(null);
+                        }
+                        throw new Error(data.error || 'Não foi possível executar a manutenção.');
+                    }
+
+                    setMaintenanceResult(data);
+                    setAppMessage('Análise concluída. Revise as recomendações antes de alterar o catálogo.');
+                } catch (error) {
+                    setAppMessage(error.message);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            return (
+                <Container maxWidth="md" sx={{ mt: 6, mb: 8 }}>
+                    {appMessage && (
+                        <Box p={2} mb={3} bgcolor="#f5f5f5" border="1px solid #e0e0e0" borderRadius={1}>
+                            <Typography color="text.primary" variant="body2">{appMessage}</Typography>
+                        </Box>
+                    )}
+
+                    {!adminProfile ? (
+                        <Card sx={{ maxWidth: 460, mx: 'auto' }}>
+                            <CardContent sx={{ textAlign: 'center', p: 4 }}>
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#424242" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{marginBottom: 16}}>
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <Typography variant="h5" gutterBottom>Painel Administrativo</Typography>
+                                <Typography variant="body2" color="text.secondary" paragraph>
+                                    O acesso é validado pelo Google e confirmado pelo backend do Vercel. Apenas a conta administrativa configurada poderá entrar.
+                                </Typography>
+
+                                {!config && !appMessage && <CircularProgress size={28} />}
+
+                                {config?.googleClientId && (
+                                    <Box display="flex" justifyContent="center" mt={3}>
+                                        <div ref={googleButtonRef}></div>
+                                    </Box>
+                                )}
+
+                                {config && !config.googleClientId && (
+                                    <Typography variant="body2" color="error">
+                                        GOOGLE_CLIENT_ID ainda não foi configurado no Vercel.
+                                    </Typography>
+                                )}
+
+                                {loading && <CircularProgress size={24} sx={{ mt: 3 }} />}
+                            </CardContent>
+                        </Card>
+                    ) : (
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <Card>
+                                    <CardContent>
+                                        <Box display="flex" justifyContent="space-between" alignItems="center" gap={2} flexWrap="wrap">
+                                            <Box>
+                                                <Typography variant="h5">Dashboard de Manutenção</Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {adminProfile.name || adminProfile.email}
+                                                </Typography>
+                                            </Box>
+                                            <Button variant="outlined" color="error" size="small" onClick={handleLogout}>
+                                                Sair
+                                            </Button>
+                                        </Box>
+
+                                        <Divider sx={{ my: 3 }} />
+
+                                        <Typography variant="subtitle1" fontWeight="bold">Segurança da conta</Typography>
+                                        <Box mt={1} p={2} border="1px solid #e0e0e0" borderRadius={1}>
+                                            <Typography variant="body2"><strong>E-mail:</strong> {adminProfile.email}</Typography>
+                                            <Typography variant="body2" sx={{ mt: 1, wordBreak: 'break-all' }}>
+                                                <strong>Google SUB:</strong> {adminProfile.sub}
+                                            </Typography>
+                                            <Button size="small" variant="outlined" sx={{ mt: 2 }} onClick={copySub}>
+                                                Copiar Google SUB
+                                            </Button>
+
+                                            {adminProfile.bootstrap && (
+                                                <Box mt={2} p={2} bgcolor="#fff8e1" border="1px solid #ffe082" borderRadius={1}>
+                                                    <Typography variant="body2">
+                                                        <strong>Modo de configuração inicial:</strong> o acesso foi permitido pelo ADMIN_EMAIL porque ADMIN_GOOGLE_SUB ainda não está definido. 
+                                                        Copie o SUB, adicione-o no Vercel e faça um novo deploy para ativar a validação estrita por SUB.
+                                                    </Typography>
+                                                </Box>
+                                            )}
+                                        </Box>
+
+                                        <Typography variant="subtitle1" fontWeight="bold" mt={4}>Configurações protegidas</Typography>
+                                        <Box mt={1} p={2} border="1px solid #e0e0e0" borderRadius={1}>
+                                            <Typography variant="body2" color="text.secondary">
+                                                A chave Gemini, o e-mail administrativo e o Google SUB ficam nas Environment Variables do Vercel e não são enviados ao navegador.
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                                Modelo configurado: {config?.geminiModel || 'definido no servidor'}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                                Pesquisa Google: {config?.geminiGoogleSearch ? 'ativada' : 'desativada'}
+                                            </Typography>
+                                        </Box>
+
+                                        <Typography variant="subtitle1" fontWeight="bold" mt={4}>Manutenção Inteligente (IA)</Typography>
+                                        <Box mt={1} p={2} border="1px solid #e0e0e0" borderRadius={1}>
+                                            <Typography variant="body2" color="text.secondary" paragraph>
+                                                O Gemini analisa o catálogo atual. A Pesquisa Google só é usada quando GEMINI_USE_GOOGLE_SEARCH=true no Vercel. A IA apenas apresenta recomendações: ela não altera o código automaticamente.
+                                            </Typography>
+                                            <Button variant="contained" onClick={runGeminiMaintenance} disabled={loading}>
+                                                {loading ? 'Analisando...' : 'Verificar Atualizações do Catálogo Agora'}
+                                            </Button>
+                                            {loading && <CircularProgress size={22} sx={{ ml: 2, verticalAlign: 'middle' }} />}
+                                        </Box>
+
+                                        {maintenanceResult?.analysis && (
+                                            <Box mt={3} p={2} border="1px solid #e0e0e0" borderRadius={1} bgcolor="#fafafa">
+                                                <Typography variant="subtitle1" fontWeight="bold" gutterBottom>Resultado da análise</Typography>
+                                                <Typography
+                                                    component="pre"
+                                                    variant="body2"
+                                                    sx={{
+                                                        whiteSpace: 'pre-wrap',
+                                                        wordBreak: 'break-word',
+                                                        fontFamily: 'inherit',
+                                                        m: 0
+                                                    }}
+                                                >
+                                                    {maintenanceResult.analysis}
+                                                </Typography>
+
+                                                {maintenanceResult.citations?.length > 0 && (
+                                                    <Box mt={3}>
+                                                        <Typography variant="subtitle2" fontWeight="bold">Fontes encontradas</Typography>
+                                                        {maintenanceResult.citations.map((citation, index) => (
+                                                            <Typography key={`${citation.url}-${index}`} variant="body2" sx={{ mt: 0.5 }}>
+                                                                <a href={citation.url} target="_blank" rel="noopener noreferrer">
+                                                                    {citation.title || citation.url}
+                                                                </a>
+                                                            </Typography>
+                                                        ))}
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        </Grid>
+                    )}
+
+                    <Box mt={3} textAlign="center">
+                        <Button onClick={() => setView('home')}>Voltar ao início</Button>
+                    </Box>
+                </Container>
+            );
+        };
+
+        // --- 4. APP PRINCIPAL ---
+
+        const App = () => {
+            const [view, setView] = React.useState('home');
+            const [selectedTech, setSelectedTech] = React.useState(null);
+            const [donationUrl, setDonationUrl] = React.useState('');
+
+            React.useEffect(() => {
+                fetch('/api/config')
+                    .then(response => response.json())
+                    .then(data => setDonationUrl(data.donationUrl || ''))
+                    .catch(() => setDonationUrl(''));
+            }, []);
+
+            return (
+                <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                        <TopBar setView={setView} />
+
+                        <Box sx={{ flexGrow: 1 }}>
+                            {view === 'home' && <Home setView={setView} />}
+                            {view === 'flow2' && <Flow2 setView={setView} setSelectedTech={setSelectedTech} />}
+                            {view === 'recommendation_flow2' && <RecommendationFlow2 techId={selectedTech} setView={setView} />}
+                            {view === 'catalog' && <CatalogView setView={setView} />}
+                            {view === 'admin' && <AdminPanel setView={setView} />}
+                        </Box>
+
+                        <FloatingDonation url={donationUrl} />
+
+                        <Box component="footer" sx={{ py: 4, textAlign: 'center', mt: 'auto', borderTop: '1px solid #e0e0e0', backgroundColor: '#fff' }}>
+                            <Typography variant="body2" color="text.secondary" fontWeight="bold">WebCore 1.0</Typography>
+                            <Typography variant="caption" color="text.secondary">Tecnologia certa para grandes ideias. Aprenda. Construa. Evolua.</Typography>
+                        </Box>
+                    </Box>
+                </ThemeProvider>
+            );
+        };
+
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

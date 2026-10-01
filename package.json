@@ -1,0 +1,12 @@
+{
+  "name": "webcore-1-0",
+  "version": "1.0.0",
+  "private": true,
+  "description": "WebCore 1.0 - ferramenta educacional para recomendação de stacks web.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "google-auth-library": "^9.15.1"
+  }
+}
